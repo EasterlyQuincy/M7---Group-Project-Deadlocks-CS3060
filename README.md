@@ -19,6 +19,7 @@ The current program is only the starting version. It creates a real deadlock on 
   - `CircularWait()`
 - A controlled `GenericDeadlockDemo()` option that returns to the menu.
 - A three-thread Dining Philosophers setup in each Coffman-condition function that deadlocks permanently.
+- Boilerplate, the initial example deadlock, and README documentation handled by Brayden Carlson.
 
 ## How The Deadlock Works
 
@@ -38,24 +39,24 @@ No philosopher releases their first fork, so all three threads remain blocked. T
 
 ## Future Solution: Mutual Exclusion
 
-Assigned group member:
+Assigned group member: Tyler Francom
 
 Notes:
 
 ## Future Solution: Hold and Wait
 
-Assigned group member:
+Assigned group member: Quincy Easterly
 
 Notes:
 
 ## Future Solution: No Preemption
 
-Assigned group member:
+Assigned group member: Dylan Edwards
 
 Notes:
 
 ## Future Solution: Circular Wait
 
-Assigned group member:
+Assigned group member: Jaden Ewell
 
 Notes:

@@ -6,6 +6,9 @@
 #include <string>
 #include <thread>
 
+// Boilerplate and initial example deadlock handled by Brayden Carlson.
+// README documentation handled by Brayden Carlson.
+
 void MainMenu();
 void MutualExclusion();
 void HoldAndWait();
@@ -23,6 +26,7 @@ void PrintLine(const std::string& message)
 }
 
 // Mutual Exclusion
+// Assigned group member: Tyler Francom
 void MutualExclusion()
 {
     std::cout << "Selected: Mutual Exclusion\n\n";
@@ -67,6 +71,7 @@ void MutualExclusion()
 }
 
 // Hold and Wait
+// Assigned group member: Quincy Easterly
 void HoldAndWait()
 {
     std::cout << "Selected: Hold and Wait\n\n";
@@ -111,6 +116,7 @@ void HoldAndWait()
 }
 
 // No Preemption
+// Assigned group member: Dylan Edwards
 void NoPreemption()
 {
     std::cout << "Selected: No Preemption\n\n";
@@ -155,6 +161,7 @@ void NoPreemption()
 }
 
 // Circular Wait
+// Assigned group member: Jaden Ewell
 void CircularWait()
 {
     std::cout << "Selected: Circular Wait\n\n";
