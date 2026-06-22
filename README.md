@@ -11,14 +11,14 @@ The current program is only the starting version. It creates a real deadlock on 
 
 ## What Was Added
 
-- A command-line menu with options for the four Coffman conditions and quit.
-- Four wrapper functions:
+- A command-line menu with options for the four Coffman conditions, a generic demonstration, and quit.
+- Four independent student-owned functions:
   - `MutualExclusion()`
   - `HoldAndWait()`
   - `NoPreemption()`
   - `CircularWait()`
-- One shared `Deadlock()` function that all four wrappers currently call.
-- A three-thread Dining Philosophers setup that deadlocks permanently.
+- A controlled `GenericDeadlockDemo()` option that returns to the menu.
+- A three-thread Dining Philosophers setup in each Coffman-condition function that deadlocks permanently.
 
 ## How The Deadlock Works
 
