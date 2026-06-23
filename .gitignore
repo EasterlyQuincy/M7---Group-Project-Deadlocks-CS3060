@@ -1,0 +1,5 @@
+
+CS3060_Group_Project/
+*.xcodeproj
+xcuserdata/
+.DS_Store
