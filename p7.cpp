@@ -330,6 +330,11 @@ void CircularWait()
     philosopherOne.join();
     philosopherTwo.join();
     philosopherThree.join();
+    
+    // Wait for user input
+    std::cout << "------------------------\nPress Enter to continue:";
+    std::string ignore;
+    std::getline(std::cin, ignore);
 }
 
 // Generic Deadlock Demonstration
