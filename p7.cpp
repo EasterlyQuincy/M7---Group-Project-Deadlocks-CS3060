@@ -29,11 +29,13 @@ void PrintLine(const std::string &message) {
 void MutualExclusion() {
     std::cout << "Selected: Mutual Exclusion\n\n";
     std::cout << "Simulation starting...\n\n";
-
-    std::array<std::mutex, 3> forks;
+    std::cout << "Phase A- Mutual Exclusion Present \n";
+{
+    std::array<std::timed_mutex, 3> forks;
     std::mutex gateMutex;
     std::condition_variable gateCondition;
     int firstForksHeld = 0;
+    std::atomic<bool> deadlockDetected{false};
 
     auto philosopher = [&](int philosopherNumber, int firstFork,
                            int secondFork) {
@@ -56,7 +58,74 @@ void MutualExclusion() {
         PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                   " is waiting for Fork " + std::to_string(secondFork + 1));
 
-        std::unique_lock<std::mutex> secondForkLock(forks[secondFork]);
+         if (!forks[secondFork].try_lock_for(std::chrono::seconds(3)))
+            {
+                deadlockDetected = true;
+
+                PrintLine("Philosopher " +
+                          std::to_string(philosopherNumber) +
+                          " could not acquire Fork " +
+                          std::to_string(secondFork + 1));
+            }
+            else
+            {
+                forks[secondFork].unlock();
+            }
+        };
+
+    std::thread philosopherOne(philosopher, 1, 0, 1);
+    std::thread philosopherTwo(philosopher, 2, 1, 2);
+    std::thread philosopherThree(philosopher, 3, 2, 0);
+
+    philosopherOne.join();
+    philosopherTwo.join();
+    philosopherThree.join();
+
+    if (deadlockDetected)
+    {
+        std::cout <<  "\n DEADLOCK DETECTED\n\n";
+    }
+    else
+    {
+        std::cout<< "\nNO DEADLOCK DETECTED\n\n";
+    };
+}
+
+
+    std::cout << "Phase B - Removing Mutual Exclusion\n";
+    std::cout << "Forks are now shareable resources.\n\n";
+    {
+    std::array<int, 3> forks;
+
+    std::atomic<int> completedCount{0};
+    std::atomic<bool> deadlockDetected{false};
+
+    auto philosopher = [&](int philosopherNumber,
+                           int firstFork,
+                           int secondFork)
+    {
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " acquired Fork " +
+                  std::to_string(firstFork + 1));
+
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " acquired Fork " +
+                  std::to_string(secondFork + 1));
+
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " is eating");
+
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(500));
+
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " finished eating");
+
+        ++completedCount;
     };
 
     std::thread philosopherOne(philosopher, 1, 0, 1);
@@ -66,7 +135,22 @@ void MutualExclusion() {
     philosopherOne.join();
     philosopherTwo.join();
     philosopherThree.join();
-}
+
+    // Deadlock check
+    if (completedCount < 3)
+    {
+        deadlockDetected = true;
+    }
+
+    if (deadlockDetected)
+    {
+        std::cout << "\nDEADLOCK DETECTED\n\n";
+    }
+    else
+    {
+        std::cout << "\nNO DEADLOCK DETECTED\n";
+    }
+}}
 
 // Hold and Wait
 // Assigned group member: Quincy Easterly
@@ -319,30 +403,100 @@ void CircularWait() {
     std::array<std::mutex, 3> forks;
     std::mutex gateMutex;
     std::condition_variable gateCondition;
-    int firstForksHeld = 0;
+    int activeThreadCount = 3;  // Number of remaining threads
+    int turnCount = 0; // The number of threads which have performed this turn
+    int generation = 0;
 
-    auto philosopher = [&](int philosopherNumber, int firstFork,
-                           int secondFork) {
-        std::unique_lock<std::mutex> firstForkLock(forks[firstFork]);
-        PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                  " acquired Fork " + std::to_string(firstFork + 1));
+    // Barrier that only waits for currently-active threads
+    auto barrier = [&](bool stillActive = true) {
+        std::unique_lock<std::mutex> lock(gateMutex);
 
-        {
-            std::unique_lock<std::mutex> gateLock(gateMutex);
-            ++firstForksHeld;
-
-            if (firstForksHeld == 3) {
-                gateCondition.notify_all();
-            } else {
-                gateCondition.wait(gateLock,
-                                   [&]() { return firstForksHeld == 3; });
+        if (!stillActive) {
+            // This thread is done — reduce the expected count and wake others
+            activeThreadCount--;
+            
+            // Advance generation so any waiting threads wake and re-evaluate
+            if (turnCount >= activeThreadCount) {
+                turnCount = 0;
+                generation++;
             }
+            
+            gateCondition.notify_all();
+            return;
         }
 
-        PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                  " is waiting for Fork " + std::to_string(secondFork + 1));
+        int myGen = generation;
 
-        std::unique_lock<std::mutex> secondForkLock(forks[secondFork]);
+        if (++turnCount == activeThreadCount) {
+            turnCount = 0;
+            generation++;
+            gateCondition.notify_all();
+        }
+        else {
+            // Wake up if generation advanced OR active count dropped
+            gateCondition.wait(lock, [&] {
+                return generation != myGen;
+            });
+        }
+    };
+
+    auto philosopher = [&](int philosopherNumber, int forkA, int forkB) {
+
+        std::unique_lock<std::mutex> leftLock;
+        std::unique_lock<std::mutex> rightLock;
+        bool gotFirst  = false;
+        bool gotSecond = false;
+        
+        // Get the lowest number of fork first > removes the Circular Wait
+        int firstFork  = std::min(forkA, forkB);
+        int secondFork = std::max(forkA, forkB);
+
+        while (!gotFirst || !gotSecond) {
+            /**
+             * Attempt to acquire the first fork
+            **/
+            if (!gotFirst) {
+                std::unique_lock<std::mutex> tryLock(forks[firstFork], std::defer_lock);
+
+                if (tryLock.try_lock()) {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " acquired Fork " + std::to_string(firstFork + 1));
+                    gotFirst = true;
+                    leftLock = std::move(tryLock);
+                }
+                else {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " is waiting for Fork " + std::to_string(firstFork + 1));
+                }
+            }
+
+            barrier();
+
+            /**
+             * Attempt to acquire the second fork
+            **/
+            if (gotFirst && !gotSecond) {
+                std::unique_lock<std::mutex> tryLock(forks[secondFork], std::defer_lock);
+
+                if (tryLock.try_lock()) {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " acquired Fork " + std::to_string(secondFork + 1));
+                    gotSecond = true;
+                    rightLock = std::move(tryLock);
+                }
+                else {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " is waiting for Fork " + std::to_string(secondFork + 1));
+                }
+            }
+
+            barrier();
+        }
+
+        PrintLine("Philosopher " + std::to_string(philosopherNumber) + " is eating.");
+
+        // Notify barrier that this thread is exiting
+        barrier(false);
     };
 
     std::thread philosopherOne(philosopher, 1, 0, 1);
@@ -352,6 +506,11 @@ void CircularWait() {
     philosopherOne.join();
     philosopherTwo.join();
     philosopherThree.join();
+    
+    // Wait for user input
+    std::cout << "------------------------\nPress Enter to continue:";
+    std::string ignore;
+    std::getline(std::cin, ignore);
 }
 
 // Generic Deadlock Demonstration
