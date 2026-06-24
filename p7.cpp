@@ -1,11 +1,11 @@
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
 #include <string>
 #include <thread>
-#include <atomic>
 // Boilerplate and initial example deadlock handled by Brayden Carlson.
 // README documentation handled by Brayden Carlson.
 
@@ -17,8 +17,7 @@ void CircularWait();
 void GenericDeadlockDemo();
 
 // Shared helpers
-void PrintLine(const std::string& message)
-{
+void PrintLine(const std::string &message) {
     static std::mutex outputMutex;
 
     std::lock_guard<std::mutex> outputLock(outputMutex);
@@ -27,8 +26,7 @@ void PrintLine(const std::string& message)
 
 // Mutual Exclusion
 // Assigned group member: Tyler Francom
-void MutualExclusion()
-{
+void MutualExclusion() {
     std::cout << "Selected: Mutual Exclusion\n\n";
     std::cout << "Simulation starting...\n\n";
 
@@ -37,7 +35,8 @@ void MutualExclusion()
     std::condition_variable gateCondition;
     int firstForksHeld = 0;
 
-    auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
+    auto philosopher = [&](int philosopherNumber, int firstFork,
+                           int secondFork) {
         std::unique_lock<std::mutex> firstForkLock(forks[firstFork]);
         PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                   " acquired Fork " + std::to_string(firstFork + 1));
@@ -49,9 +48,8 @@ void MutualExclusion()
             if (firstForksHeld == 3) {
                 gateCondition.notify_all();
             } else {
-                gateCondition.wait(gateLock, [&]() {
-                    return firstForksHeld == 3;
-                });
+                gateCondition.wait(gateLock,
+                                   [&]() { return firstForksHeld == 3; });
             }
         }
 
@@ -72,8 +70,7 @@ void MutualExclusion()
 
 // Hold and Wait
 // Assigned group member: Quincy Easterly
-void HoldAndWait()
-{
+void HoldAndWait() {
     std::cout << "Selected: Hold and Wait\n\n";
     std::cout << "Simulation starting...\n\n";
     std::cout << "Phase A - Demonstrating deadlock\n";
@@ -85,7 +82,8 @@ void HoldAndWait()
         int firstForksHeld = 0;
         std::atomic<bool> deadlockDetected{false};
 
-        auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
+        auto philosopher = [&](int philosopherNumber, int firstFork,
+                               int secondFork) {
             std::lock_guard<std::timed_mutex> firstForkLock(forks[firstFork]);
             PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                       " acquired Fork " + std::to_string(firstFork + 1));
@@ -97,9 +95,8 @@ void HoldAndWait()
                 if (firstForksHeld == 3) {
                     gateCondition.notify_all();
                 } else {
-                    gateCondition.wait(gateLock, [&]() {
-                        return firstForksHeld == 3;
-                    });
+                    gateCondition.wait(gateLock,
+                                       [&]() { return firstForksHeld == 3; });
                 }
             }
 
@@ -111,7 +108,8 @@ void HoldAndWait()
             } else {
                 deadlockDetected = true;
                 PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                          " gave up waiting for Fork " + std::to_string(secondFork + 1));
+                          " gave up waiting for Fork " +
+                          std::to_string(secondFork + 1));
             }
         };
 
@@ -131,7 +129,6 @@ void HoldAndWait()
         }
     }
 
- 
     std::cout << "Phase B - Applying prevention strategy\n";
     std::cout << "Applying prevention strategy (eliminate Hold and Wait: "
                  "acquire all forks at once)...\n\n";
@@ -139,18 +136,22 @@ void HoldAndWait()
     {
         std::array<std::mutex, 3> forks;
 
-        auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
+        auto philosopher = [&](int philosopherNumber, int firstFork,
+                               int secondFork) {
             while (true) {
-                
-                if (std::try_lock(forks[firstFork], forks[secondFork]) == -1) {
-                    std::lock_guard<std::mutex> firstForkLock(forks[firstFork], std::adopt_lock);
-                    std::lock_guard<std::mutex> secondForkLock(forks[secondFork], std::adopt_lock);
 
-                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                              " acquired Fork " + std::to_string(firstFork + 1) +
-                              " and Fork " + std::to_string(secondFork + 1));
-                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                              " completed");
+                if (std::try_lock(forks[firstFork], forks[secondFork]) == -1) {
+                    std::lock_guard<std::mutex> firstForkLock(forks[firstFork],
+                                                              std::adopt_lock);
+                    std::lock_guard<std::mutex> secondForkLock(
+                        forks[secondFork], std::adopt_lock);
+
+                    PrintLine(
+                        "Philosopher " + std::to_string(philosopherNumber) +
+                        " acquired Fork " + std::to_string(firstFork + 1) +
+                        " and Fork " + std::to_string(secondFork + 1));
+                    PrintLine("Philosopher " +
+                              std::to_string(philosopherNumber) + " completed");
                     break;
                 }
 
@@ -174,71 +175,144 @@ void HoldAndWait()
 
 // No Preemption
 // Assigned group member: Dylan Edwards
-void NoPreemption()
-{
+void NoPreemption() {
     std::cout << "Selected: No Preemption\n\n";
     std::cout << "Simulation starting...\n\n";
     std::cout << "Phase A - Demonstrating deadlock\n";
-    
-    auto acquire = [](std::atomic<int>& fork, int philosopherNumber) {
-            int expected = -1;
-            while (!fork.compare_exchange_strong(expected, philosopherNumber)) {
-                expected = -1;
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-        };
-    
+
+    auto acquire = [](std::atomic<int> &fork, int philosopherNumber) {
+        int expected = -1;
+        while (!fork.compare_exchange_strong(expected, philosopherNumber)) {
+            expected = -1;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    };
+
     {
         std::array<std::atomic<int>, 3> forks{-1, -1, -1};
         std::mutex gateMutex;
         std::condition_variable gateCondition;
         int firstForksHeld = 0;
         std::atomic<int> doneCount{0};
-        
-        auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
-            acquire(forks[firstFork], <#int philosopherNumber#>);
+
+        auto philosopher = [&](int philosopherNumber, int firstFork,
+                               int secondFork) {
+            acquire(forks[firstFork], philosopherNumber);
             PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                       " acquired Fork " + std::to_string(firstFork + 1));
-            
+
             {
                 std::unique_lock<std::mutex> gateLock(gateMutex);
                 ++firstForksHeld;
-                
+
                 if (firstForksHeld == 3) {
                     gateCondition.notify_all();
                 } else {
-                    gateCondition.wait(gateLock, [&]() {
-                        return firstForksHeld == 3;
-                    });
+                    gateCondition.wait(gateLock,
+                                       [&]() { return firstForksHeld == 3; });
                 }
             }
-            
+
             PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                       " is waiting for Fork " + std::to_string(secondFork + 1));
-            
         };
-        
+
         std::thread philosopherOne(philosopher, 1, 0, 1);
         std::thread philosopherTwo(philosopher, 2, 1, 2);
         std::thread philosopherThree(philosopher, 3, 2, 0);
-        
+
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         std::cout << '\n';
-        std::cout << (doneCount.load() < 3 ? "DEADLOCK DETECTED\n\n" : "No deadlock occurred.\n\n");
-        
-        for (auto& fork : forks) fork.store(-1);
-        
+        std::cout << (doneCount.load() < 3 ? "DEADLOCK DETECTED\n\n"
+                                           : "No deadlock occurred.\n\n");
+
+        for (auto &fork : forks)
+            fork.store(-1);
+
         philosopherOne.join();
         philosopherTwo.join();
         philosopherThree.join();
     }
+
+    std::cout << "Phase B - Applying prevention strategy\n";
+    std::cout << "Applying prevention strategy (eliminate No Preemption: "
+                 "forcibly reclaim a held fork after a timeout)...\n\n";
+
+    {
+        std::array<std::atomic<int>, 3> forks{-1, -1, -1};
+        std::mutex gateMutex;
+        std::condition_variable gateCondition;
+        int firstForksHeld = 0;
+        std::atomic<int> doneCount{0};
+
+        auto release = [](std::atomic<int> &fork, int philosopherNumber) {
+            int expected = philosopherNumber;
+            fork.compare_exchange_strong(expected, -1);
+        };
+
+        auto philosopher = [&](int philosopherNumber, int firstFork,
+                               int secondFork) {
+            acquire(forks[firstFork], philosopherNumber);
+            PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                      " acquired Fork " + std::to_string(firstFork + 1));
+
+            {
+                std::unique_lock<std::mutex> gateLock(gateMutex);
+                ++firstForksHeld;
+                if (firstForksHeld == 3) {
+                    gateCondition.notify_all();
+                } else {
+                    gateCondition.wait(gateLock,
+                                       [&]() { return firstForksHeld == 3; });
+                }
+            }
+
+            PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                      " is waiting for Fork " + std::to_string(secondFork + 1));
+
+            acquire(forks[secondFork], philosopherNumber);
+            PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                      " completed");
+            ++doneCount;
+
+            release(forks[firstFork], philosopherNumber);
+            release(forks[secondFork], philosopherNumber);
+        };
+
+        auto watchdog = [&]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+            for (int i = 0; i < 3 && doneCount.load() < 3; ++i) {
+                int holder = forks[i].load();
+                if (holder != -1 &&
+                    forks[i].compare_exchange_strong(holder, -1)) {
+                    PrintLine("Preempting Fork " + std::to_string(i + 1) +
+                              " from Philosopher " + std::to_string(holder));
+                    break;
+                }
+            }
+        };
+
+        std::thread philosopherOne(philosopher, 1, 0, 1);
+        std::thread philosopherTwo(philosopher, 2, 1, 2);
+        std::thread philosopherThree(philosopher, 3, 2, 0);
+        std::thread watchdogThread(watchdog);
+
+        philosopherOne.join();
+        philosopherTwo.join();
+        philosopherThree.join();
+        watchdogThread.join();
+
+        std::cout << "\nNo deadlock detected\n\n";
+    }
+
+    std::cout << "Returning to the main menu.\n\n";
 }
 
 // Circular Wait
 // Assigned group member: Jaden Ewell
-void CircularWait()
-{
+void CircularWait() {
     std::cout << "Selected: Circular Wait\n\n";
     std::cout << "Simulation starting...\n\n";
 
@@ -247,7 +321,8 @@ void CircularWait()
     std::condition_variable gateCondition;
     int firstForksHeld = 0;
 
-    auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
+    auto philosopher = [&](int philosopherNumber, int firstFork,
+                           int secondFork) {
         std::unique_lock<std::mutex> firstForkLock(forks[firstFork]);
         PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                   " acquired Fork " + std::to_string(firstFork + 1));
@@ -259,9 +334,8 @@ void CircularWait()
             if (firstForksHeld == 3) {
                 gateCondition.notify_all();
             } else {
-                gateCondition.wait(gateLock, [&]() {
-                    return firstForksHeld == 3;
-                });
+                gateCondition.wait(gateLock,
+                                   [&]() { return firstForksHeld == 3; });
             }
         }
 
@@ -281,8 +355,7 @@ void CircularWait()
 }
 
 // Generic Deadlock Demonstration
-void GenericDeadlockDemo()
-{
+void GenericDeadlockDemo() {
     std::cout << "Generic Deadlock Demonstration\n\n"
               << "Philosopher 1 holds Fork 1 and waits for Fork 2\n"
               << "Philosopher 2 holds Fork 2 and waits for Fork 3\n"
@@ -298,8 +371,7 @@ void GenericDeadlockDemo()
 }
 
 // Main Menu
-void MainMenu()
-{
+void MainMenu() {
     while (true) {
         std::cout << "Deadlock Demonstration\n\n"
                   << "1. Mutual Exclusion\n"
@@ -316,7 +388,8 @@ void MainMenu()
         }
 
         if (selection.size() != 1 || selection[0] < '1' || selection[0] > '6') {
-            std::cout << "\nInvalid selection. Please enter a number from 1 to 6.\n\n";
+            std::cout << "\nInvalid selection. Please enter a number from 1 to "
+                         "6.\n\n";
             continue;
         }
 
@@ -344,8 +417,7 @@ void MainMenu()
     }
 }
 
-int main()
-{
+int main() {
     MainMenu();
     return 0;
 }
