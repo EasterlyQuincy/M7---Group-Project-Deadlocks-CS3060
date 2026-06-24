@@ -32,7 +32,7 @@ void MutualExclusion()
     std::cout << "Selected: Mutual Exclusion\n\n";
     std::cout << "Simulation starting...\n\n";
     std::cout << "Phase A- Mutual Exclusion Present \n";
-
+{
     std::array<std::timed_mutex, 3> forks;
     std::mutex gateMutex;
     std::condition_variable gateCondition;
@@ -92,37 +92,45 @@ void MutualExclusion()
     {
         std::cout<< "\nNO DEADLOCK DETECTED\n\n";
     };
+}
+
 
     std::cout << "Phase B - Removing Mutual Exclusion\n";
     std::cout << "Forks are now shareable resources.\n\n";
-
+    {
     std::array<int, 3> forks;
 
-     auto philosopher = [&](int philosopherNumber,
-                               int firstFork,
-                               int secondFork)
-        {
-            PrintLine("Philosopher " +
-                      std::to_string(philosopherNumber) +
-                      " acquired Fork " +
-                      std::to_string(firstFork + 1));
+    std::atomic<int> completedCount{0};
+    std::atomic<bool> deadlockDetected{false};
 
-            PrintLine("Philosopher " +
-                      std::to_string(philosopherNumber) +
-                      " acquired Fork " +
-                      std::to_string(secondFork + 1));
+    auto philosopher = [&](int philosopherNumber,
+                           int firstFork,
+                           int secondFork)
+    {
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " acquired Fork " +
+                  std::to_string(firstFork + 1));
 
-            PrintLine("Philosopher " +
-                      std::to_string(philosopherNumber) +
-                      " is eating");
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " acquired Fork " +
+                  std::to_string(secondFork + 1));
 
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(500));
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " is eating");
 
-            PrintLine("Philosopher " +
-                      std::to_string(philosopherNumber) +
-                      " finished eating");
-        };
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(500));
+
+        PrintLine("Philosopher " +
+                  std::to_string(philosopherNumber) +
+                  " finished eating");
+
+        ++completedCount;
+    };
+
     std::thread philosopherOne(philosopher, 1, 0, 1);
     std::thread philosopherTwo(philosopher, 2, 1, 2);
     std::thread philosopherThree(philosopher, 3, 2, 0);
@@ -131,16 +139,21 @@ void MutualExclusion()
     philosopherTwo.join();
     philosopherThree.join();
 
+    // Deadlock check
+    if (completedCount < 3)
+    {
+        deadlockDetected = true;
+    }
+
     if (deadlockDetected)
     {
-        std::cout <<  "\n DEADLOCK DETECTED\n\n";
+        std::cout << "\nDEADLOCK DETECTED\n\n";
     }
     else
     {
-        std::cout<< "\nNO DEADLOCK DETECTED\n\n";
-    };
-
-}
+        std::cout << "\nNO DEADLOCK DETECTED\n";
+    }
+}}
 
 // Hold and Wait
 // Assigned group member: Quincy Easterly
