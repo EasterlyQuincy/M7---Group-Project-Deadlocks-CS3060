@@ -83,6 +83,42 @@ void MutualExclusion()
     philosopherOne.join();
     philosopherTwo.join();
     philosopherThree.join();
+
+    if (deadlockDetected)
+    {
+        std::cout <<  "\n DEADLOCK DETECTED\n\n";
+    };
+
+    std::cout << "Phase B - Removing Mutual Exclusion\n";
+    std::cout << "Forks are now shareable resources.\n\n";
+
+    std::array<int, 3> forks;
+
+     auto philosopher = [&](int philosopherNumber,
+                               int firstFork,
+                               int secondFork)
+        {
+            PrintLine("Philosopher " +
+                      std::to_string(philosopherNumber) +
+                      " acquired Fork " +
+                      std::to_string(firstFork + 1));
+
+            PrintLine("Philosopher " +
+                      std::to_string(philosopherNumber) +
+                      " acquired Fork " +
+                      std::to_string(secondFork + 1));
+
+            PrintLine("Philosopher " +
+                      std::to_string(philosopherNumber) +
+                      " is eating");
+
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(500));
+
+            PrintLine("Philosopher " +
+                      std::to_string(philosopherNumber) +
+                      " finished eating");
+        };
 }
 
 // Hold and Wait
