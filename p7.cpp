@@ -31,14 +31,17 @@ void MutualExclusion()
 {
     std::cout << "Selected: Mutual Exclusion\n\n";
     std::cout << "Simulation starting...\n\n";
+    std::cout << "Phase A- Mutual Exclusion Present \n";
 
-    std::array<std::mutex, 3> forks;
+    std::array<std::timed_mutex, 3> forks;
     std::mutex gateMutex;
     std::condition_variable gateCondition;
     int firstForksHeld = 0;
+    std::atomic<bool> deadlockDetected{false};
 
-    auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
-        std::unique_lock<std::mutex> firstForkLock(forks[firstFork]);
+    auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) 
+    {
+        std::unique_lock<std::timed_mutex> firstForkLock(forks[firstFork]);
         PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                   " acquired Fork " + std::to_string(firstFork + 1));
 
@@ -58,8 +61,20 @@ void MutualExclusion()
         PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                   " is waiting for Fork " + std::to_string(secondFork + 1));
 
-        std::unique_lock<std::mutex> secondForkLock(forks[secondFork]);
-    };
+         if (!forks[secondFork].try_lock_for(std::chrono::seconds(3)))
+            {
+                deadlockDetected = true;
+
+                PrintLine("Philosopher " +
+                          std::to_string(philosopherNumber) +
+                          " could not acquire Fork " +
+                          std::to_string(secondFork + 1));
+            }
+            else
+            {
+                forks[secondFork].unlock();
+            }
+        };
 
     std::thread philosopherOne(philosopher, 1, 0, 1);
     std::thread philosopherTwo(philosopher, 2, 1, 2);
