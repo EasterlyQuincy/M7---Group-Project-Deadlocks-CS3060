@@ -39,7 +39,7 @@ void MutualExclusion() {
 
     auto philosopher = [&](int philosopherNumber, int firstFork,
                            int secondFork) {
-        std::unique_lock<std::mutex> firstForkLock(forks[firstFork]);
+        std::unique_lock<std::timed_mutex> firstForkLock(forks[firstFork]);
         PrintLine("Philosopher " + std::to_string(philosopherNumber) +
                   " acquired Fork " + std::to_string(firstFork + 1));
 
