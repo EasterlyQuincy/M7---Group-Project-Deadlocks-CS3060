@@ -87,6 +87,10 @@ void MutualExclusion()
     if (deadlockDetected)
     {
         std::cout <<  "\n DEADLOCK DETECTED\n\n";
+    }
+    else
+    {
+        std::cout<< "\nNO DEADLOCK DETECTED\n\n";
     };
 
     std::cout << "Phase B - Removing Mutual Exclusion\n";
@@ -119,6 +123,23 @@ void MutualExclusion()
                       std::to_string(philosopherNumber) +
                       " finished eating");
         };
+    std::thread philosopherOne(philosopher, 1, 0, 1);
+    std::thread philosopherTwo(philosopher, 2, 1, 2);
+    std::thread philosopherThree(philosopher, 3, 2, 0);
+
+    philosopherOne.join();
+    philosopherTwo.join();
+    philosopherThree.join();
+
+    if (deadlockDetected)
+    {
+        std::cout <<  "\n DEADLOCK DETECTED\n\n";
+    }
+    else
+    {
+        std::cout<< "\nNO DEADLOCK DETECTED\n\n";
+    };
+
 }
 
 // Hold and Wait
