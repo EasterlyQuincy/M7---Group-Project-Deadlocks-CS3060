@@ -227,30 +227,100 @@ void CircularWait()
     std::array<std::mutex, 3> forks;
     std::mutex gateMutex;
     std::condition_variable gateCondition;
-    int firstForksHeld = 0;
+    int activeThreadCount = 3;  // Number of remaining threads
+    int turnCount = 0; // The number of threads which have performed this turn
+    int generation = 0;
 
-    auto philosopher = [&](int philosopherNumber, int firstFork, int secondFork) {
-        std::unique_lock<std::mutex> firstForkLock(forks[firstFork]);
-        PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                  " acquired Fork " + std::to_string(firstFork + 1));
+    // Barrier that only waits for currently-active threads
+    auto barrier = [&](bool stillActive = true) {
+        std::unique_lock<std::mutex> lock(gateMutex);
 
-        {
-            std::unique_lock<std::mutex> gateLock(gateMutex);
-            ++firstForksHeld;
-
-            if (firstForksHeld == 3) {
-                gateCondition.notify_all();
-            } else {
-                gateCondition.wait(gateLock, [&]() {
-                    return firstForksHeld == 3;
-                });
+        if (!stillActive) {
+            // This thread is done — reduce the expected count and wake others
+            activeThreadCount--;
+            
+            // Advance generation so any waiting threads wake and re-evaluate
+            if (turnCount >= activeThreadCount) {
+                turnCount = 0;
+                generation++;
             }
+            
+            gateCondition.notify_all();
+            return;
         }
 
-        PrintLine("Philosopher " + std::to_string(philosopherNumber) +
-                  " is waiting for Fork " + std::to_string(secondFork + 1));
+        int myGen = generation;
 
-        std::unique_lock<std::mutex> secondForkLock(forks[secondFork]);
+        if (++turnCount == activeThreadCount) {
+            turnCount = 0;
+            generation++;
+            gateCondition.notify_all();
+        }
+        else {
+            // Wake up if generation advanced OR active count dropped
+            gateCondition.wait(lock, [&] {
+                return generation != myGen;
+            });
+        }
+    };
+
+    auto philosopher = [&](int philosopherNumber, int forkA, int forkB) {
+
+        std::unique_lock<std::mutex> leftLock;
+        std::unique_lock<std::mutex> rightLock;
+        bool gotFirst  = false;
+        bool gotSecond = false;
+        
+        // Get the lowest number of fork first > removes the Circular Wait
+        int firstFork  = std::min(forkA, forkB);
+        int secondFork = std::max(forkA, forkB);
+
+        while (!gotFirst || !gotSecond) {
+            /**
+             * Attempt to acquire the first fork
+            **/
+            if (!gotFirst) {
+                std::unique_lock<std::mutex> tryLock(forks[firstFork], std::defer_lock);
+
+                if (tryLock.try_lock()) {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " acquired Fork " + std::to_string(firstFork + 1));
+                    gotFirst = true;
+                    leftLock = std::move(tryLock);
+                }
+                else {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " is waiting for Fork " + std::to_string(firstFork + 1));
+                }
+            }
+
+            barrier();
+
+            /**
+             * Attempt to acquire the second fork
+            **/
+            if (gotFirst && !gotSecond) {
+                std::unique_lock<std::mutex> tryLock(forks[secondFork], std::defer_lock);
+
+                if (tryLock.try_lock()) {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " acquired Fork " + std::to_string(secondFork + 1));
+                    gotSecond = true;
+                    rightLock = std::move(tryLock);
+                }
+                else {
+                    PrintLine("Philosopher " + std::to_string(philosopherNumber) +
+                              " is waiting for Fork " + std::to_string(secondFork + 1));
+                }
+            }
+
+            barrier();
+        }
+
+        PrintLine("Philosopher " + std::to_string(philosopherNumber) + " is eating.");
+
+        // Notify barrier that this thread is exiting
+        barrier(false);
     };
 
     std::thread philosopherOne(philosopher, 1, 0, 1);
