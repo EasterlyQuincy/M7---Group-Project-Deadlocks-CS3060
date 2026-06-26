@@ -1,1 +1,16 @@
-
+Issues:
+	1. Some of the issues we have encountered as a group include, but are not limited to, scheduling problems, merging changes into the main branch of the GitHub repository, and delegating roles. To solve these problems, we delegated roles on a first-come, first-served basis in a group chat to avoid meetings. In addition, we assigned one person to handle the merging of changes into the GitHub repository.
+  2. Picture of a merge conflict can be seen through "image.png"
+Real-world correlations to Deadlock conditions and solutions:
+	1. Mutual Exclusion: 
+		A: An example of mutual exclusion could be two separate drivers attempting to use a one way road in opposite directions preventing each other from proceeding as the shared resource (the road) can not be shared at the same time.
+		B: The solution to this deadlock condition would be creating another road allowing both individuals to have there own resource to manage.
+	2. Hold and Wait: 
+		A: An example of hold and wait could be two separate individuals attempting to create a sandwich with one person holding the bread while the other holds the other ingredients, meaning that neither individuals can accomplish anything as both lack the tool for the next step.
+		B: The solution to this deadlock condition would be only allowing a person to pick up the bread or the other ingredients if they are both available to pickup at once.
+	3. No Preemption:
+    A: An example of no preemption could be an individual attempting to take a seat that is actively being used by someone else at a theater, which is not permitted.
+    B: A solution to this problem would be to assign someone, such as a theater employee, to decide whether the seat should be taken away.
+	4. Circular Wait:
+    A: An example of circular wait could be two individuals in a hallway, both moving in sync as they try to get around each other, preventing both from moving forward.
+    B: The solution to this deadlock condition could be creating a rule that people walk only on the right side of the hallway, preventing any blocks.
