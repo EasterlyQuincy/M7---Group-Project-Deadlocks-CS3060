@@ -14,3 +14,9 @@ Real-world correlations to Deadlock conditions and solutions:
 	4. Circular Wait:
     	A: An example of circular wait could be two individuals in a hallway, both moving in sync as they try to get around each other, preventing both from moving forward.
     	B: The solution to this deadlock condition could be creating a rule that people walk only on the right side of the hallway, preventing any blocks.
+
+Deadlocks encountered by the group:
+	1. Circular Wait:
+		A: There were five group members and five potential roles for this program. Each member could choose any role, but each person waited for someone else to choose first before making a decision. Since nobody wanted to be first, no roles were being selected.
+		B: The solution to this deadlock condition was to break the circular wait by having one member choose a role first. That decision created a starting point, which allowed the other members to choose or be assigned the remaining roles.
+
